@@ -1,0 +1,22 @@
+QWidget {
+    background: #121212;
+    color: #EFD469;
+    font-family: 'Inter', 'Segoe UI', Arial;
+}
+QPushButton {
+    background: qlineargradient(x1:0,y1:0,x2:1,y2:1, stop:0 #3b3a36, stop:1 #191818);
+    color: #EFD469;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-weight: 700;
+    font-size: 16px;
+}
+QPushButton:hover {
+    background: #44424a;
+}
+QFrame#Card {
+    border-radius: 14px;
+    background: #181818;
+    box-shadow: 0 0 12px #efd46933;
+    border: 1.5px solid #EFD46944;
+}
