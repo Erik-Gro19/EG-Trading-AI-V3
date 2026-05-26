@@ -1,35 +1,54 @@
 # engine/performance/logger.py
 
-from typing import List, Dict
+from engine.utils.persistence import PersistenceManager
+import pandas as pd
 
 class TradeLogger:
     def __init__(self):
-        self.trades: List[Dict] = []
+        self.pers = PersistenceManager()
+        self.trades = self.pers.load_json("trades.json", default=[])
 
-    def log_trade(self, trade: Dict):
-        """
-        trade must include keys:
-            symbol, side, qty, entry, exit, pnl, timestamp_open, timestamp_close
-        """
+    def log_trade(self, trade):
         self.trades.append(trade)
+        self.pers.save_json(self.trades, "trades.json")
 
-    def get_trade_history(self) -> List[Dict]:
+    def get_trades(self):
         return self.trades
 
-    def get_equity_curve(self, start_balance=10000.0) -> List[float]:
-        equity = start_balance
-        curve = []
-        for t in self.trades:
-            equity += t.get("pnl", 0)
-            curve.append(equity)
-        return curve
+    def as_dataframe(self):
+        # DataFrame für weitere Auswertungen (Winrate, etc.)
+        if not self.trades:
+            return pd.DataFrame()
+        return pd.DataFrame(self.trades)
 
-    def get_basic_stats(self):
-        wins = sum(1 for t in self.trades if t.get("pnl", 0) > 0)
-        losses = sum(1 for t in self.trades if t.get("pnl", 0) <= 0)
-        total = len(self.trades)
-        winrate = wins / total * 100 if total > 0 else 0
-        profit = sum(t.get("pnl", 0) for t in self.trades)
-        avg_win = sum(t.get("pnl", 0) for t in self.trades if t.get("pnl", 0) > 0) / wins if wins else 0
-        avg_loss = sum(t.get("pnl", 0) for t in self.trades if t.get("pnl", 0) <= 0) / losses if losses else 0
-        return {"winrate": winrate, "profit": profit, "avg_win": avg_win, "avg_loss": avg_loss}
+    def total_pnl(self):
+        df = self.as_dataframe()
+        if df.empty or 'pnl' not in df:
+            return 0
+        return df['pnl'].sum()
+
+    def win_loss_count(self):
+        df = self.as_dataframe()
+        if df.empty or 'pnl' not in df:
+            return 0, 0
+        wins = df[df['pnl'] > 0]
+        losses = df[df['pnl'] <= 0]
+        return len(wins), len(losses)
+
+    def win_rate(self):
+        wins, losses = self.win_loss_count()
+        total = wins + losses
+        return (wins / total) * 100 if total > 0 else 0
+
+    def max_drawdown(self):
+        df = self.as_dataframe()
+        if df.empty or 'pnl' not in df:
+            return 0
+        eq_curve = df['pnl'].cumsum()
+        peak = eq_curve.cummax()
+        drawdown = (eq_curve - peak).min()
+        return abs(drawdown)
+
+    def clear(self):
+        self.trades = []
+        self.pers.save_json(self.trades, "trades.json")
