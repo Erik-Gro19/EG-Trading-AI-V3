@@ -1,6 +1,9 @@
 # main.py
 
 import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from PyQt6.QtWidgets import QApplication
 from engine.utils.user_service import UserService
 from engine.utils.accounts_service import AccountsService
